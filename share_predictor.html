@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Price Predictor - BSE & NSE India</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f9;
+            color: #1a202c;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        /* Header Styling */
+        header {
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+            border-bottom: 5px solid #1d4ed8;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -1px;
+        }
+
+        header p {
+            margin: 0.5rem 0 0;
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        /* Main Content Styling */
+        main {
+            padding: 2rem 1rem;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        /* Input Section */
+        .input-section {
+            background-color: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1.5rem;
+            text-align: center;
+        }
+
+        .input-section label {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #2d3748;
+        }
+
+        #investmentAmount {
+            padding: 0.8rem 1rem;
+            border: 1px solid #cbd5e0;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        #investmentAmount:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+            outline: none;
+        }
+
+        #predictBtn {
+            padding: 0.9rem 2rem;
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 700;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+        }
+
+        #predictBtn:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-3px);
+        }
+
+        /* Results & Loading Section */
+        #results {
+            margin-top: 2.5rem;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #1e3a8a;
+            border-bottom: 3px solid #3b82f6;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        .hidden { display: none; }
+        .mt-4 { margin-top: 3rem; }
+
+        #loading {
+            text-align: center;
+            padding: 3rem;
+            font-size: 1.2rem;
+            color: #1e3a8a;
+            font-weight: 500;
+        }
+
+        .spinner {
+            border: 5px solid #e2e8f0;
+            border-top: 5px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Card Styling for Stocks and Analysis */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stock-card, .analysis-card {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            border-left: 5px solid #3b82f6;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stock-card:hover, .analysis-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        }
+
+        .stock-card h3, .analysis-card h3 {
+            margin-top: 0;
+            font-size: 1.3rem;
+            color: #1e3a8a;
+            margin-bottom: 1rem;
+        }
+        
+        .stock-card .exchange {
+            background-color: #e0e7ff;
+            color: #3730a3;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: inline-block;
+            margin-left: 0.5rem;
+        }
+
+        .price-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .price-info .label {
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        .price-info .value {
+            font-weight: 700;
+            color: #1a202c;
+        }
+
+        .price-info .predicted {
+            color: #16a34a; /* Green for predicted price */
+        }
+        
+        .analysis-card p {
+            color: #4a5568;
+            font-size: 1rem;
+        }
+
+        /* Chart Dashboard Styling */
+        .dashboard {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            height: 500px;
+        }
+
+        /* Footer Styling */
+        footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            background-color: #e2e8f0;
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+        
+        /* Alert Box Styling */
+        #alertBox {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ef4444;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s, top 0.3s;
+        }
+        #alertBox.show {
+            opacity: 1;
+            visibility: visible;
+            top: 40px;
+        }
+
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Share Price Predictor 📈</h1>
+        <p>Investment Insights for BSE & NSE India</p>
+    </header>
+
+    <main>
+        <div class="input-section">
+            <label for="investmentAmount">Enter Your Affordable Investment Amount (INR):</label>
+            <input type="number" id="investmentAmount" placeholder="e.g., 50000">
+            <button id="predictBtn">Get Predictions</button>
+        </div>
+
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p>Analyzing the market, please wait...</p>
+        </div>
+        
+        <div id="alertBox"></div>
+
+        <div id="results" class="hidden">
+            <section id="suggestions-section">
+                <h2>Top Investment Suggestions</h2>
+                <div id="suggested-stocks" class="card-grid"></div>
+            </section>
+
+            <section id="dashboard-section" class="mt-4">
+                <h2>Comparative Analysis Dashboard</h2>
+                <div class="dashboard">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </section>
+
+            <section id="analysis-section" class="mt-4">
+                <h2>Detailed Reasoning and Analysis</h2>
+                <div id="analysis" class="card-grid"></div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>Disclaimer: This tool provides simulated predictions for educational purposes only. All investments are subject to market risks. Data is illustrative.</p>
+    </footer>
+
+    <script>
+        // --- DATA SIMULATION ---
+        // In a real-world scenario, this data would be fetched from a live API.
+        // To ensure this app works offline and without API keys, we simulate the data.
+        const MOCK_STOCK_DATA = {
+            'RELIANCE.NS': { name: 'Reliance Industries Ltd', exchange: 'NSE', prices: [2750, 2765, 2780, 2730, 2790, 2805, 2810, 2830, 2825, 2850, 2840, 2865, 2880, 2870, 2895, 2900, 2910, 2905, 2920, 2930, 2915, 2940, 2955, 2950, 2960, 2975, 2965, 2980, 2995, 3000, 2985, 3010, 3020, 3015, 3030, 3045, 3035, 3050, 3060, 3055, 3070, 3080, 3075, 3090, 3100, 3095, 3110, 3120, 3115, 3130] },
+            'TCS.NS': { name: 'Tata Consultancy Services', exchange: 'NSE', prices: [3800, 3820, 3810, 3835, 3850, 3830, 3860, 3875, 3865, 3880, 3890, 3885, 3900, 3910, 3905, 3920, 3930, 3925, 3940, 3950, 3945, 3960, 3970, 3965, 3980, 3990, 3985, 4000, 4010, 4005, 4020, 4030, 4025, 4040, 4050, 4045, 4060, 4070, 4065, 4080, 4090, 4085, 4100, 4110, 4105, 4120, 4130, 4125, 4140, 4150] },
+            'HDFCBANK.NS': { name: 'HDFC Bank Ltd', exchange: 'NSE', prices: [1450, 1440, 1460, 1455, 1470, 1465, 1480, 1475, 1490, 1485, 1500, 1495, 1510, 1505, 1520, 1515, 1530, 1525, 1540, 1535, 1550, 1545, 1560, 1555, 1570, 1565, 1580, 1575, 1590, 1585, 1600, 1595, 1610, 1605, 1620, 1615, 1630, 1625, 1640, 1635, 1650, 1645, 1660, 1655, 1670, 1665, 1680, 1675, 1690, 1700] },
+            'INFY.NS': { name: 'Infosys Ltd', exchange: 'NSE', prices: [1500, 1490, 1480, 1470, 1460, 1450, 1440, 1430, 1420, 1410, 1400, 1425, 1435, 1445, 1455, 1465, 1475, 1485, 1495, 1505, 1515, 1525, 1535, 1545, 1555, 1565, 1575, 1585, 1595, 1605, 1615, 1625, 1635, 1645, 1655, 1665, 1675, 1685, 1695, 1705, 1715, 1725, 1735, 1745, 1755, 1765, 1775, 1785, 1795, 1800] },
+            'ICICIBANK.BO': { name: 'ICICI Bank Ltd', exchange: 'BSE', prices: [1050, 1060, 1070, 1080, 1090, 1100, 1110, 1120, 1130, 1140, 1150, 1145, 1155, 1165, 1175, 1185, 1195, 1205, 1215, 1225, 1235, 1245, 1255, 1265, 1275, 1285, 1295, 1305, 1315, 1325, 1335, 1345, 1355, 1365, 1375, 1385, 1395, 1405, 1415, 1425, 1435, 1445, 1455, 1465, 1475, 1485, 1495, 1505, 1515, 1525] },
+            'SBIN.NS': { name: 'State Bank of India', exchange: 'NSE', prices: [750, 740, 730, 720, 710, 700, 690, 680, 670, 660, 650, 655, 665, 675, 685, 695, 705, 715, 725, 735, 745, 755, 765, 775, 785, 795, 805, 815, 825, 835, 845, 855, 865, 875, 885, 895, 905, 915, 925, 935, 945, 955, 965, 975, 985, 995, 1005, 1015, 1025, 1030] },
+            'LT.BO': { name: 'Larsen & Toubro Ltd', exchange: 'BSE', prices: [3500, 3520, 3510, 3530, 3540, 3550, 3560, 3570, 3580, 3590, 3600, 3610, 3620, 3630, 3640, 3650, 3660, 3670, 3680, 3690, 3700, 3710, 3720, 3730, 3740, 3750, 3760, 3770, 3780, 3790, 3800, 3810, 3820, 3830, 3840, 3850, 3860, 3870, 3880, 3890, 3900, 3910, 3920, 3930, 3940, 3950, 3960, 3970, 3980, 3990] },
+        };
+
+        // --- DOM ELEMENTS ---
+        const predictBtn = document.getElementById('predictBtn');
+        const investmentAmountInput = document.getElementById('investmentAmount');
+        const loadingDiv = document.getElementById('loading');
+        const resultsDiv = document.getElementById('results');
+        const suggestedContainer = document.getElementById('suggested-stocks');
+        const analysisContainer = document.getElementById('analysis');
+        const chartContainer = document.getElementById('priceChart');
+        let priceChartInstance = null;
+        
+        // --- EVENT LISTENER ---
+        predictBtn.addEventListener('click', handlePrediction);
+        investmentAmountInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                handlePrediction();
+            }
+        });
+
+        // --- FUNCTIONS ---
+
+        /**
+         * Custom alert function
+         */
+        function showAlert(message) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.classList.add('show');
+            setTimeout(() => {
+                alertBox.classList.remove('show');
+            }, 3000);
+        }
+
+        /**
+         * Main handler for initiating the prediction process
+         */
+        function handlePrediction() {
+            const investmentAmount = parseFloat(investmentAmountInput.value);
+            if (isNaN(investmentAmount) || investmentAmount <= 0) {
+                showAlert('Please enter a valid investment amount.');
+                return;
+            }
+
+            loadingDiv.classList.remove('hidden');
+            resultsDiv.classList.add('hidden');
+
+            // Simulate API call delay
+            setTimeout(() => {
+                try {
+                    const predictions = getPredictions(investmentAmount);
+                    displayResults(predictions);
+                    resultsDiv.classList.remove('hidden');
+                } catch (error) {
+                    console.error("Error processing predictions:", error);
+                    showAlert("An error occurred. Please try again.");
+                } finally {
+                    loadingDiv.classList.add('hidden');
+                }
+            }, 1500); // 1.5 second delay
+        }
+
+        /**
+         * Processes the mock data to generate predictions
+         */
+        function getPredictions(investmentAmount) {
+            const suggestions = [];
+            const advisable = [];
+
+            for (const ticker in MOCK_STOCK_DATA) {
+                const stock = MOCK_STOCK_DATA[ticker];
+                const prices = stock.prices;
+                const currentPrice = prices[prices.length - 1];
+
+                // Skip stocks user can't afford
+                if (currentPrice > investmentAmount) continue;
+
+                // Calculate 50-day moving average (using all available points)
+                const ma50 = prices.slice(-50).reduce((a, b) => a + b, 0) / Math.min(prices.length, 50);
+
+                // Generate prediction and reasoning
+                let predictionFactor, reasoning;
+                const isPositiveMomentum = currentPrice > ma50;
+
+                if (isPositiveMomentum) {
+                    predictionFactor = 1 + (Math.random() * 0.10 + 0.05); // 5-15% increase
+                    reasoning = `The stock is currently trading at ₹${currentPrice.toFixed(2)}, which is above its 50-day moving average of ₹${ma50.toFixed(2)}. This indicates a strong positive short-term momentum. Our model projects continued growth based on this technical indicator and prevailing positive market sentiment.`;
+                } else {
+                    predictionFactor = 1 + (Math.random() * 0.04 + 0.01); // 1-5% increase
+                    reasoning = `While trading at ₹${currentPrice.toFixed(2)}, this stock is below its 50-day moving average of ₹${ma50.toFixed(2)}. This suggests a period of consolidation or a slight downtrend. Our prediction is more conservative, based on general market growth expectations rather than strong individual momentum.`;
+                }
+
+                const stockInfo = {
+                    name: stock.name,
+                    symbol: ticker,
+                    exchange: stock.exchange,
+                    currentPrice: currentPrice,
+                    predictedPrice: currentPrice * predictionFactor,
+                    reasoning: reasoning,
+                    isPositive: isPositiveMomentum,
+                };
+
+                if (stockInfo.isPositive) {
+                    suggestions.push(stockInfo);
+                } else {
+                    advisable.push(stockInfo);
+                }
+            }
+
+            // Sort suggestions by highest predicted gain
+            suggestions.sort((a, b) => (b.predictedPrice / b.currentPrice) - (a.predictedPrice / a.currentPrice));
+
+            return {
+                suggestedStocks: suggestions.slice(0, 3),
+                advisableStocks: advisable.slice(0, 4)
+            };
+        }
+
+        /**
+         * Renders the results on the page
+         */
+        function displayResults(data) {
+            suggestedContainer.innerHTML = '';
+            analysisContainer.innerHTML = '';
+
+            // Display suggested stocks
+            if (data.suggestedStocks.length > 0) {
+                data.suggestedStocks.forEach(stock => {
+                    suggestedContainer.innerHTML += createStockCard(stock);
+                    analysisContainer.innerHTML += createAnalysisCard(stock);
+                });
+            } else {
+                suggestedContainer.innerHTML = `<div class="stock-card"><p>No high-momentum stocks were found within your budget. Consider increasing the amount or review the comparison chart for other options.</p></div>`;
+            }
+
+            // Setup the comparative analysis chart
+            setupChart(data);
+        }
+
+        /**
+         * Creates HTML for a single stock card
+         */
+        function createStockCard(stock) {
+            return `
+                <div class="stock-card">
+                    <h3>${stock.name} <span class="exchange">${stock.exchange}</span></h3>
+                    <div class="price-info">
+                        <span class="label">Current Price:</span>
+                        <span class="value">₹${stock.currentPrice.toFixed(2)}</span>
+                    </div>
+                    <div class="price-info">
+                        <span class="label">Predicted Price:</span>
+                        <span class="value predicted">₹${stock.predictedPrice.toFixed(2)}</span>
+                    </div>
+                </div>`;
+        }
+        
+        /**
+         * Creates HTML for a single analysis card
+         */
+        function createAnalysisCard(stock) {
+            return `
+                <div class="analysis-card">
+                    <h3>Analysis: ${stock.name}</h3>
+                    <p>${stock.reasoning}</p>
+                </div>`;
+        }
+
+        /**
+         * Configures and renders the Chart.js chart
+         */
+        function setupChart(data) {
+            const allStocks = [...data.suggestedStocks, ...data.advisableStocks];
+            const chartLabels = allStocks.map(s => s.name);
+            const currentPrices = allStocks.map(s => s.currentPrice);
+            const predictedPrices = allStocks.map(s => s.predictedPrice || null); // Use null for advisable stocks without prediction
+
+            if (priceChartInstance) {
+                priceChartInstance.destroy();
+            }
+
+            priceChartInstance = new Chart(chartContainer.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: chartLabels,
+                    datasets: [{
+                        label: 'Current Price (INR)',
+                        data: currentPrices,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }, {
+                        label: 'Predicted Price (INR)',
+                        data: predictedPrices,
+                        backgroundColor: 'rgba(22, 163, 74, 0.7)',
+                        borderColor: 'rgba(22, 163, 74, 1)',
+                        borderWidth: 1,
+                        borderRadius: 5,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: { 
+                                callback: value => '₹' + value.toLocaleString('en-IN'),
+                                color: '#4a5568'
+                            },
+                            grid: { color: '#e2e8f0' }
+                        },
+                        x: {
+                            ticks: { color: '#4a5568' },
+                            grid: { display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#1a202c' } },
+                        tooltip: {
+                            backgroundColor: '#1a202c',
+                            titleFont: { size: 14 },
+                            bodyFont: { size: 12 },
+                            callbacks: {
+                                label: context => `${context.dataset.label}: ₹${context.parsed.y.toFixed(2)}`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
